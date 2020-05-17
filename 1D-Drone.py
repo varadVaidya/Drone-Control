@@ -27,9 +27,9 @@ g = 9.81 # m/s2
 
 # PID tuning parameters
 Kp = 50
-Kd = 10
+Kd = 12
 # Simulation Time Parameters
-simulation_time = 5 # seconds
+simulation_time = 20 # seconds
 time_points = simulation_time * 100 + 1
 #define the function model
 
@@ -50,7 +50,6 @@ delta_t = t[1] - t[0] # The time difference between the two time points
 
 # give the  to the model input
 u = np.zeros(time_points)
-#u[101: ] = m * g
 
 # Arrays to store the solutions
 z = np.empty_like(t)
@@ -62,7 +61,9 @@ z[0],zdot[0] = x0
 # Set the desired z values
 # Sets the desired position and velocity to the values inside. The desired values now can change with time.
 zdes = np.vstack( (np.empty_like(t) , np.empty_like(t)) )       
-zdes[0] = np.ones(t.size)
+zdes[0] = np.zeros(t.size)
+zdes[0][501:1001] = 1
+zdes[0][1501:2001] = -1
 zdes[1] = np.zeros(t.size)
 print(zdes)
 # zdes[0] is the desired postion and zdes[1] is desired the velocity
