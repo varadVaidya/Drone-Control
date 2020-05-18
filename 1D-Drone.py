@@ -7,6 +7,7 @@ from scipy.integrate import odeint
 '''
 This project aims to develop a 1-D drone control which is controlled by PID.
 
+
 The controller will control the z direction of the drone.
 
 The dymanic model for the same can be written as:
