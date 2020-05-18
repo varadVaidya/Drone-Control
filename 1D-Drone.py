@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 
 '''
-This project aims to develop a 1-D drone control which is controlled by PID and may be
-extended to other forms of controllers.
+This project aims to develop a 1-D drone control which is controlled by PID.
 
 The controller will control the z direction of the drone.
 
