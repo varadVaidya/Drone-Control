@@ -26,10 +26,11 @@ m = 0.5  # kg
 g = 9.81 # m/s2
 
 # PID tuning parameters
-Kp = 50
-Kd = 12
+Kp = 170
+Kd = 20
+Ki = 9
 # Simulation Time Parameters
-simulation_time = 20 # seconds
+simulation_time = 40 # seconds
 time_points = simulation_time * 100 + 1
 #define the function model
 
@@ -64,13 +65,14 @@ zdes = np.vstack( (np.empty_like(t) , np.empty_like(t)) )
 zdes[0] = np.zeros(t.size)
 zdes[0][501:1001] = 1
 zdes[0][1501:2001] = -1
+zdes[0][2501:3501] = np.linspace(0,4,1000)
 zdes[1] = np.zeros(t.size)
-print(zdes)
 # zdes[0] is the desired postion and zdes[1] is desired the velocity
 
 # Setiing up the error array
 error = np.empty_like(zdes)
 error[:,0] = zdes[:,0] - x0
+int_error = 0
 
 # The error[0] is position error and error[1] is the velocity error
 
@@ -79,8 +81,8 @@ error[:,0] = zdes[:,0] - x0
 for i in range(1,time_points):
     tspan = [t[i-1],t[i]]
     error[:,i] = zdes[:,i] - x0  # x0 contains the current state for the error calculation
-
-    u[i] =  m * ( g + Kp * error[0][i] + Kd * error[1][i])
+    int_error = int_error + error[0][i] * delta_t 
+    u[i] =  m * ( g + Kp * error[0][i] + Kd * error[1][i]  + Ki * int_error )
 
     x = odeint(zsolver,x0,t,args=(u[i],))
 
@@ -90,6 +92,7 @@ for i in range(1,time_points):
     # giving the next initial condition to the solver
     x0 = x[1]
 
+print('The max value of the z is :' , np.nanmax(z))
 
 # Plot the result
 
