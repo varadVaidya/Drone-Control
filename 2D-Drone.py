@@ -246,7 +246,7 @@ TUNING_MATRIX = np.array([
 ])
 
 solvedState = simulate(TUNING_MATRIX,t)
-#anime()
+anime()
 plotResults(solvedState,t)
 
 
