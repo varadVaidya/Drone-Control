@@ -114,16 +114,40 @@ def simulate(TUNING_MATRIX,t):
     return solvedState
 
 def plotResults(solvedState,t):
-    plt.plot(solvedState[:,1],solvedState[:,0],'k',label = 'Trajectory')
-    plt.plot(t,solvedState[:,0],'r:',label = 'Z-axis')
-    plt.plot(t,solvedState[:,1],'g:',label = 'Y-axis')
-    plt.plot(t,solvedState[:,2],'b',label = 'Phi')
+    # plt.plot(solvedState[:,1],solvedState[:,0],'k',label = 'Trajectory')
+    # plt.plot(t,solvedState[:,0],'r:',label = 'Z-axis')
+    # plt.plot(t,solvedState[:,1],'g:',label = 'Y-axis')
+    # plt.plot(t,solvedState[:,2],'b',label = 'Phi')
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
+    
+    fig = plt.figure()
+    spec = fig.add_gridspec(3,4)
+    
+    ax1 = fig.add_subplot(spec[0:3,0:3])
+    ax1.set_title('Z-Y Plane Trajectory')
+    ax1.grid(True)
+    ax1.plot(solvedState[:,1],solvedState[:,0],'k',label = 'Trajectory')
+
+        
+    ax2 = fig.add_subplot(spec[0,3])
+    ax2.set_title('Z Trajectory')
+    ax2.grid(True)
+    ax2.plot(t,solvedState[:,0],'r:',label = 'Z-axis')
+    
+    ax3 = fig.add_subplot(spec[1,3])
+    ax3.set_title('Y Trajectory')
+    ax3.grid(True)
+    ax3.plot(t,solvedState[:,1],'g:',label = 'Y-axis')
+    
+    ax4 = fig.add_subplot(spec[2,3])
+    ax4.set_title('Phi Trajectory')
+    ax4.grid(True)
+    ax4.plot(t,solvedState[:,2],'b',label = 'Phi')
     plt.legend()
-    plt.grid(True)
     plt.show()
     
-    
-    plt.show()
     
     return None
     
@@ -217,12 +241,12 @@ print("Final State:",des_state)
 
 TUNING_MATRIX = np.array([
     [5,4,0],
-    [3,3,0],
+    [5,4,0],
     [70,10,0]    
 ])
 
 solvedState = simulate(TUNING_MATRIX,t)
-anime()
+#anime()
 plotResults(solvedState,t)
 
 
