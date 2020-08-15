@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
+import matplotlib.animation as animation
 import math
 
 '''
@@ -38,8 +39,10 @@ class Quadrotor:
         self.Ixx = 0.00025
         self.maxF = 3.5316
         self.minF = 0.0
-        self.initial_state = [-3,10,np.pi/4,0,0,0]          #the initial state vector contains all the state and their dervitaive
-                                                    #The self.initial_state wil be a 1*6 vector.
+        self.initial_state = np.array([np.random.randint(-5,5), 
+                                         np.random.randint(-5,5),   np.random.uniform(-np.pi/3,np.pi/3),0,0,0])        
+        #the initial state vector contains all the state and their dervitaive
+        #The self.initial_state wil be a 1*6 vector.
         self.current_state = self.initial_state
     
     def dynamics(self,state,t,u):
@@ -111,19 +114,20 @@ def simulate(TUNING_MATRIX,t):
     return solvedState
 
 def plotResults(solvedState,t):
-    plt.plot(solvedState[:,1],solvedState[:,0],'g',label = 'Plot')
-    #plt.plot(t,solvedState[:,0],'g:',label = 'Plot')
+    plt.plot(solvedState[:,1],solvedState[:,0],'k',label = 'Trajectory')
+    plt.plot(t,solvedState[:,0],'r:',label = 'Z-axis')
+    plt.plot(t,solvedState[:,1],'g:',label = 'Y-axis')
     plt.plot(t,solvedState[:,2],'b',label = 'Phi')
     plt.legend()
     plt.grid(True)
     plt.show()
     
+    
+    plt.show()
+    
     return None
     
-# Simulation Time Parameters
-simulation_time = 20 # seconds
-time_points = simulation_time * 100 + 1
-t = np.linspace(0,simulation_time,time_points)
+
 
 # des_state = np.array([
 #             [np.ones_like(t)],                      # z desired
@@ -134,9 +138,83 @@ t = np.linspace(0,simulation_time,time_points)
 #             [np.zeros_like(t)],                     #y dot dot des
 #             ]).transpose()
 
-des_state = np.array([1,2,0,0,0,0]) # z,y,zdot,ydot,zdotdot,y dotdot
+
+def anime():
+    l = (Drone.Ixx * 12/ Drone.MASS) * (1 / 2)                  # length of drone
+    l1=l+0.15
+    fig = plt.figure()
+    ax = fig.add_subplot(111, autoscale_on=False, aspect='equal')
+    
+    ax.grid()
+    
+    line, = ax.plot([], [], '-', lw=5.5)
+    lined, = ax.plot([], [], '-', lw=5.5)
+    line1, = ax.plot([], [], '-', lw=3)
+    lined1, = ax.plot([], [], '-', lw=3)
+
+    def init():
+        line.set_data([], [])
+        lined.set_data([], [])
+        line1.set_data([], [])
+        lined1.set_data([], [])
+        
+        return lined, line, lined1, lined
+
+    def animate(i):
+        global N
+        global T
+        while (i < len(t)):
+            y = [solvedState[i, 1] - (l / 2) * np.cos(solvedState[i, 2]),
+                solvedState[i, 1] + (l / 2) * np.cos(solvedState[i, 2])]
+            z = [solvedState[i, 0] - (l / 2) * np.sin(solvedState[i, 2]),
+                solvedState[i, 0] + (l / 2) * np.sin(solvedState[i, 2])]
+
+            yd = [des_state[1] - (l / 2) * np.cos(des_state[2]), des_state[1] + (l / 2) * np.cos(des_state[2])]
+            zd = [des_state[0] - (l / 2) * np.sin(des_state[2]), des_state[0] + (l / 2) * np.sin(des_state[2])]
+
+            y1 = [solvedState[i, 1] - (l1 / 2) * np.cos(solvedState[i, 2]),
+                solvedState[i, 1] + (l1 / 2) * np.cos(solvedState[i, 2])]
+            z1 = [solvedState[i, 0] - (l1 / 2) * np.sin(solvedState[i, 2]),
+                solvedState[i, 0] + (l1 / 2) * np.sin(solvedState[i, 2])]
+
+            yd1 = [des_state[1] - (l1 / 2) * np.cos(des_state[2]), des_state[1] + (l1 / 2) * np.cos(des_state[2])]
+            zd1 = [des_state[0] - (l1 / 2) * np.sin(des_state[2]), des_state[0] + (l1 / 2) * np.sin(des_state[2])]
+            
+            ax.set_xlim(solvedState[i,1]-1,solvedState[i,1]+1)
+            ax.set_ylim(solvedState[i,0]-1,solvedState[i,0]+1)
+            
+                
+
+            line.set_data(y, z)
+            lined.set_data(yd, zd)
+            line1.set_data(y1, z1)
+            lined1.set_data(yd1, zd1)
+            plt.draw()
+
+            return lined1, line1, lined, line
+    
+    
+
+    ani = animation.FuncAnimation(fig, animate,
+                                  interval=6.667, blit=False, init_func=init, repeat = False,frames=1000)
+    ani.save('2D.mp4',writer='ffmpeg',fps=25,bitrate=1800)
+
+    plt.show()
+    return None
+
+
+# Simulation Time Parameters
+simulation_time = 10 # seconds
+time_points = simulation_time * 100 + 1
+t = np.linspace(0,simulation_time,time_points)
+
+
 
 Drone = Quadrotor()
+des_state = np.array([np.random.randint(-5,5),np.random.randint(-5,5),0,0,0,0]) # z,y,zdot,ydot,zdotdot,y dotdot
+print("Initial State:",Drone.initial_state)
+print("Final State:",des_state)
+
 TUNING_MATRIX = np.array([
     [5,4,0],
     [3,3,0],
@@ -144,7 +222,7 @@ TUNING_MATRIX = np.array([
 ])
 
 solvedState = simulate(TUNING_MATRIX,t)
-
+anime()
 plotResults(solvedState,t)
 
 
