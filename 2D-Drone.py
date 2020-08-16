@@ -7,8 +7,8 @@ import math
 '''
 
 CURRENTLY ALL DOUBLE DERIVATIVE STATES ARE ZERO
-Trajectory Planning Not implemented
-
+Trajectory Planning implemented
+Point to Point Striaght Line Trajectory Planning Done
 '''
 '''
 This project aims to develop a 2D quadcoptor controller.
@@ -40,7 +40,10 @@ class Quadrotor:
         self.maxF = 3.5316
         self.minF = 0.0
         self.initial_state = np.array([np.random.randint(-5,5), 
-                                         np.random.randint(-5,5),   np.random.uniform(-np.pi/3,np.pi/3),0,0,0])        
+                                         np.random.randint(-5,5), np.random.uniform(-np.pi/3,np.pi/3)  ,0,0,0]) 
+        # self.initial_state = np.array([np.random.randint(-5,5), 
+        #                                  np.random.randint(-5,5), 0 ,0,0,0])   
+    
         #the initial state vector contains all the state and their dervitaive
         #The self.initial_state wil be a 1*6 vector.
         self.current_state = self.initial_state
@@ -74,8 +77,7 @@ class Quadrotor:
     #         solvedState = np.append(solvedState,self.current_state, axis=0)
     #     return solvedState
  
-
-def simulate(TUNING_MATRIX,t):
+def simulate(TUNING_MATRIX,des_stateMatrix,t):
     solvedState = Drone.initial_state
     timepoints = len(t)
     Kp_z, Kd_z , Ki_z = TUNING_MATRIX[0,:]
@@ -83,7 +85,9 @@ def simulate(TUNING_MATRIX,t):
     Kp_th, Kd_th , Ki_th = TUNING_MATRIX[2,:]
     
     for i in range(1,timepoints):
-            
+        
+        des_state = des_stateMatrix[i,:]
+        
         u1 = Drone.MASS * ( Drone.GRAVITY + 
                             Kd_z * (des_state[2] - Drone.current_state[3]) +
                             Kp_z * (des_state[0] - Drone.current_state[0])
@@ -113,15 +117,8 @@ def simulate(TUNING_MATRIX,t):
         
     return solvedState
 
-def plotResults(solvedState,t):
-    # plt.plot(solvedState[:,1],solvedState[:,0],'k',label = 'Trajectory')
-    # plt.plot(t,solvedState[:,0],'r:',label = 'Z-axis')
-    # plt.plot(t,solvedState[:,1],'g:',label = 'Y-axis')
-    # plt.plot(t,solvedState[:,2],'b',label = 'Phi')
-    # plt.legend()
-    # plt.grid(True)
-    # plt.show()
-    
+def plotResults(solvedState,des_stateMatrix,t):
+        
     fig = plt.figure()
     spec = fig.add_gridspec(3,4)
     
@@ -129,6 +126,8 @@ def plotResults(solvedState,t):
     ax1.set_title('Z-Y Plane Trajectory')
     ax1.grid(True)
     ax1.plot(solvedState[:,1],solvedState[:,0],'k',label = 'Trajectory')
+    ax1.plot(des_stateMatrix[:,1],des_stateMatrix[:,0],'m:',label = 'Desired Trajectory')
+    ax1.legend()
 
         
     ax2 = fig.add_subplot(spec[0,3])
@@ -145,22 +144,54 @@ def plotResults(solvedState,t):
     ax4.set_title('Phi Trajectory')
     ax4.grid(True)
     ax4.plot(t,solvedState[:,2],'b',label = 'Phi')
-    plt.legend()
     plt.show()
     
     
     return None
+
+def TrajectoryPlan(Drone,des_state,plan_t,t):
+    initial_state = [Drone.initial_state[0],Drone.initial_state[1],0,0,0,0]
+    final_time = plan_t[-1]
     
-
-
-# des_state = np.array([
-#             [np.ones_like(t)],                      # z desired
-#             [np.ones_like(t)],                      # y des
-#             [np.zeros_like(t)],                     #z dot des
-#             [np.zeros_like(t)],                     #y dot des
-#             [np.zeros_like(t)],                     #z dot dot des
-#             [np.zeros_like(t)],                     #y dot dot des
-#             ]).transpose()
+    stateMatrix = np.empty([len(t),6])
+    stateMatrix[0,:] = initial_state
+    stateMatrix[len(plan_t),:] = des_state
+    '''
+    We will be implementing shortest path or minimum velocity path
+    
+    So the trajectory is defined by 
+    x(t) = c_1 * t + c_0
+    
+    constrained to the condition x(0) is the intial state and x(T) is the final condition.
+    this reduces the problem to find out the coefficients c_0 and c_1 found by algebra
+    
+    '''
+    C_z_0 = Drone.initial_state[0]
+    C_z_1 = ( des_state[0] - C_z_0 )/final_time
+    
+    C_y_0 = Drone.initial_state[1]
+    C_y_1 = ( des_state[1] - C_y_0 )/final_time
+    
+    for i in range(1,len(t)):
+        
+        if ( i < len(plan_t) ):        
+            z = C_z_1 * t[i] + C_z_0
+            y = C_y_1 * t[i] + C_y_0
+            
+            vel_z = 0
+            vel_y = 0
+            
+            # vel_z = C_z_1
+            # vel_y = C_y_1
+            
+            stateMatrix[i,:] = [z,y,vel_z,vel_y,0,0]
+            
+        if (i > len(plan_t)):
+            stateMatrix[i,:] = des_state
+                    
+            
+    
+    return stateMatrix
 
 
 def anime():
@@ -228,10 +259,12 @@ def anime():
 
 
 # Simulation Time Parameters
-simulation_time = 10 # seconds
+simulation_time = 12 # seconds
+plan_time = 8
 time_points = simulation_time * 100 + 1
+plan_time_points = plan_time * 100 + 1
 t = np.linspace(0,simulation_time,time_points)
-
+plan_t = np.linspace(0,plan_time,plan_time_points)
 
 
 Drone = Quadrotor()
@@ -241,23 +274,23 @@ print("Final State:",des_state)
 
 TUNING_MATRIX = np.array([
     [5,4,0],
-    [5,4,0],
-    [70,10,0]    
+    [3,3,0],
+    [60,10,0]    
 ])
 
-solvedState = simulate(TUNING_MATRIX,t)
+# TUNING_MATRIX = np.array([
+#     [80,20,0],
+#     [30,12,0],
+#     [25,10,0]    
+# ])
+
+des_stateMatrix = TrajectoryPlan(Drone,des_state,plan_t,t)
+print("Trajectory Planning Done")
+#np.savetxt('check.csv',des_stateMatrix,fmt='%f',delimiter=",")
+solvedState = simulate(TUNING_MATRIX,des_stateMatrix,t)
+print("Solving the state done")
+
 anime()
-plotResults(solvedState,t)
-
-
-
-
-
-
-
-
-    
-    
-
+plotResults(solvedState,des_stateMatrix,t)
 
         
