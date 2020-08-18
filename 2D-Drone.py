@@ -82,6 +82,7 @@ class TrajectoryPlan:
     
     def __init__(self):
         pass
+        
     
     @staticmethod    
     def minVelPath(Drone,des_state,plan_t,t):
@@ -160,6 +161,7 @@ class TrajectoryPlan:
         final_time = plan_t[-1] # time for plannig.
         print(final_time)
         stateMatrix = np.empty([len(t),6])
+        stateMatrix[:] = des_state
         #statematrix is the desired states at all time points which the controller will follow
         # in the format of z,y,zdot,ydot,zddot,yddot.
         
@@ -183,18 +185,34 @@ class TrajectoryPlan:
         
         stateMatrix[0,:] = [Drone.initial_state[0],Drone.initial_state[1],0,0,0,0]
         
-        for i in range(1,len(t)):
+        zvel_coeff = [3*z_coeff[0],2*z_coeff[1],z_coeff[3]]
+        yvel_coeff = [3*y_coeff[0],2*y_coeff[1],y_coeff[3]]
+        
+        stateMatrix[0:len(plan_t),0] = np.polyval(z_coeff,plan_t)
+        stateMatrix[0:len(plan_t),1] = np.polyval(y_coeff,plan_t)
+        stateMatrix[0:len(plan_t),2] = np.polyval(zvel_coeff,plan_t)
+        stateMatrix[0:len(plan_t),3] = np.polyval(yvel_coeff,plan_t)
+        stateMatrix[0:len(plan_t),4] = 0
+        stateMatrix[0:len(plan_t),5] = 0
+        
+        
+        
+        
+        
+        # for i in range(1,len(t)):
             
-            if( i <= len(plan_t) ):
-                z = z_coeff[0] * pow(t[i],3) + z_coeff[1] * pow(t[1],2) + z_coeff[2] * t[i] + z_coeff[3]
-                y = y_coeff[0] * pow(t[i],3) + y_coeff[1] * pow(t[1],2) + y_coeff[2] * t[i] + y_coeff[3]
-                zvel = 3 * z_coeff[0] * pow(t[i],2) + 2 * z_coeff[1] * t[i] + z_coeff[2]
-                yvel = 3 * y_coeff[0] * pow(t[i],2) + 2 * y_coeff[1] * t[i] + y_coeff[2]
+        #     if( i <= len(plan_t) ):
+        #         # z = z_coeff[0] * pow(t[i],3) + z_coeff[1] * pow(t[1],2) + z_coeff[2] * t[i] + z_coeff[3]
+        #         # y = y_coeff[0] * pow(t[i],3) + y_coeff[1] * pow(t[1],2) + y_coeff[2] * t[i] + y_coeff[3]
+        #         # zvel = 3 * z_coeff[0] * pow(t[i],2) + 2 * z_coeff[1] * t[i] + z_coeff[2]
+        #         # yvel = 3 * y_coeff[0] * pow(t[i],2) + 2 * y_coeff[1] * t[i] + y_coeff[2]
                 
-                stateMatrix[i,:] = [z,y,zvel,yvel,0,0]
                 
-            if( i > len(plan_t)):
-                stateMatrix[i,:] = des_state
+                
+        #         stateMatrix[i,:] = [z,y,zvel,yvel,0,0]
+                
+        #     if( i > len(plan_t)):
+        #         stateMatrix[i,:] = des_state
             
         
         return stateMatrix
@@ -375,5 +393,4 @@ print("Simulation Done. Animating the Plot")
 
 #anime()
 plotResults(solvedState,des_stateMatrix,t)
-print(t)
         
