@@ -40,9 +40,9 @@ class Quadrotor:
         self.maxF = 3.5316
         self.minF = 0.0
         self.initial_state = np.array([np.random.randint(-5,5), 
-                                         np.random.randint(-5,5), np.random.uniform(-np.pi/3,np.pi/3)  ,0,0,0]) 
+                                         np.random.randint(-5,5), np.random.uniform(-2*np.pi/3,2*np.pi/3)  ,0,0,0]) 
         # self.initial_state = np.array([np.random.randint(-5,5), 
-        #                                  np.random.randint(-5,5), 0 ,0,0,0])   
+        #                                np.random.randint(-5,5), 0 ,0,0,0])   
         #z,y,phi,zdot,ydot,phidot.
     
         #the initial state vector contains all the state and their dervitaive
@@ -159,7 +159,6 @@ class TrajectoryPlan:
         '''
         
         final_time = plan_t[-1] # time for plannig.
-        print(final_time)
         stateMatrix = np.empty([len(t),6])
         stateMatrix[:] = des_state
         #statematrix is the desired states at all time points which the controller will follow
@@ -172,11 +171,13 @@ class TrajectoryPlan:
             [3*pow(final_time,2),2*final_time,1,0]
         ])
                 
-        # z_constriants = np.array([Drone.initial_state[0],Drone.initial_state[3],des_state[0],des_state[2]])
-        # y_constriants = np.array([Drone.initial_state[1],Drone.initial_state[4],des_state[1],des_state[3]])
+        z_constriants = np.array([Drone.initial_state[0],Drone.initial_state[3],des_state[0],des_state[2]]) 
+        #z(0),z(T),zdot(0),zdot(T)
+        y_constriants = np.array([Drone.initial_state[1],Drone.initial_state[4],des_state[1],des_state[3]])
+        #y(0),y(T),ydot(0),ydot(T)
         
-        z_constriants = np.array([Drone.initial_state[0],0,des_state[0],0]) #z(0),z(T),zdot(0),zdot(T)
-        y_constriants = np.array([Drone.initial_state[1],0,des_state[1],0]) #y(0),y(T),ydot(0),ydot(T)
+        # z_constriants = np.array([Drone.initial_state[0],0,des_state[0],0]) #z(0),z(T),zdot(0),zdot(T)
+        # y_constriants = np.array([Drone.initial_state[1],0,des_state[1],0]) #y(0),y(T),ydot(0),ydot(T)
         
         z_coeff = np.linalg.solve(coeffMatrix,z_constriants)                #solve for the coefficients
         print("The Z coeff are: ",z_coeff,"And its constraints are ", z_constriants)
@@ -185,35 +186,15 @@ class TrajectoryPlan:
         
         stateMatrix[0,:] = [Drone.initial_state[0],Drone.initial_state[1],0,0,0,0]
         
-        zvel_coeff = [3*z_coeff[0],2*z_coeff[1],z_coeff[3]]
-        yvel_coeff = [3*y_coeff[0],2*y_coeff[1],y_coeff[3]]
+        zvel_coeff = [3*z_coeff[0],2*z_coeff[1],z_coeff[2]]
+        yvel_coeff = [3*y_coeff[0],2*y_coeff[1],y_coeff[2]]
         
         stateMatrix[0:len(plan_t),0] = np.polyval(z_coeff,plan_t)
         stateMatrix[0:len(plan_t),1] = np.polyval(y_coeff,plan_t)
         stateMatrix[0:len(plan_t),2] = np.polyval(zvel_coeff,plan_t)
         stateMatrix[0:len(plan_t),3] = np.polyval(yvel_coeff,plan_t)
         stateMatrix[0:len(plan_t),4] = 0
-        stateMatrix[0:len(plan_t),5] = 0
-        
-        
-        
-        
-        
-        # for i in range(1,len(t)):
-            
-        #     if( i <= len(plan_t) ):
-        #         # z = z_coeff[0] * pow(t[i],3) + z_coeff[1] * pow(t[1],2) + z_coeff[2] * t[i] + z_coeff[3]
-        #         # y = y_coeff[0] * pow(t[i],3) + y_coeff[1] * pow(t[1],2) + y_coeff[2] * t[i] + y_coeff[3]
-        #         # zvel = 3 * z_coeff[0] * pow(t[i],2) + 2 * z_coeff[1] * t[i] + z_coeff[2]
-        #         # yvel = 3 * y_coeff[0] * pow(t[i],2) + 2 * y_coeff[1] * t[i] + y_coeff[2]
-                
-                
-                
-        #         stateMatrix[i,:] = [z,y,zvel,yvel,0,0]
-                
-        #     if( i > len(plan_t)):
-        #         stateMatrix[i,:] = des_state
-            
+        stateMatrix[0:len(plan_t),5] = 0            
         
         return stateMatrix
         
@@ -274,13 +255,16 @@ def plotResults(solvedState,des_stateMatrix,t):
     ax2 = fig.add_subplot(spec[0,3])
     ax2.set_title('Z Trajectory')
     ax2.grid(True)
-    ax2.plot(t,solvedState[:,0],'r:',label = 'Z-axis')
+    ax2.plot(t,solvedState[:,0],'r',label = 'Z-axis')
+    ax2.plot(t,solvedState[:,3],'r:',label = 'Z-velocity')
     ax2.plot(t,des_stateMatrix[:,0],'m:',label = 'Desired Z Trajectory')
+    
     
     ax3 = fig.add_subplot(spec[1,3])
     ax3.set_title('Y Trajectory')
     ax3.grid(True)
-    ax3.plot(t,solvedState[:,1],'g:',label = 'Y-axis')
+    ax3.plot(t,solvedState[:,1],'g',label = 'Y-axis')
+    ax3.plot(t,solvedState[:,4],'g:',label = 'Y-velocity')
     ax3.plot(t,des_stateMatrix[:,1],'m:',label = 'Desired Y Trajectory')
     
     ax4 = fig.add_subplot(spec[2,3])
@@ -357,8 +341,8 @@ def anime():
 
 
 # Simulation Time Parameters
-simulation_time = 12 # seconds
-plan_time = 8 #time for which the path has to be planned
+simulation_time = 15 # seconds
+plan_time = 5 #time for which the path has to be planned
 time_points = simulation_time * 100 + 1
 plan_time_points = plan_time * 100 + 1
 t = np.linspace(0,simulation_time,time_points)
@@ -378,19 +362,18 @@ TUNING_MATRIX = np.array([
 
 # TUNING_MATRIX = np.array([
 #     [80,20,0],
-#     [30,12,0],
-#     [25,10,0]    
+#     [25,5,0],
+#     [100,10,0]    
 # ])
 
-#des_stateMatrix = TrajectoryPlan.minVelPath(Drone,des_state,plan_t,t)
+# des_stateMatrix = TrajectoryPlan.minVelPath(Drone,des_state,plan_t,t)
 
 des_stateMatrix = TrajectoryPlan.minAccelnPath(Drone,des_state,plan_t,t)
-print(np.shape(des_stateMatrix))
 print("Trajectory Planning Done. Solving for the states")
 #np.savetxt('check.csv',des_stateMatrix,fmt='%f',delimiter=",")
 solvedState = simulate(TUNING_MATRIX,des_stateMatrix,t)
 print("Simulation Done. Animating the Plot")
 
-#anime()
+anime()
 plotResults(solvedState,des_stateMatrix,t)
         
