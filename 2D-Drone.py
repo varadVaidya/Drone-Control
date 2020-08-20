@@ -29,6 +29,15 @@ phi'' = u2 * 1/ I_xx
 
 The values of the drone are picked up from the Aerial Robotics Course.
 '''
+
+PLAN_TRAJ = True, 3
+#Set PLAN_TRAJ to True if trajectory planning is to be implemented.
+# Set no to
+# 1 for Minimum Velocity
+# 2 for Minimum Acceleration
+# 3 for Minimum Jerk.
+
+
 ##--------QUADROTOR MODEL-----------###
 
 class Quadrotor:
@@ -41,10 +50,10 @@ class Quadrotor:
         self.Ixx = 0.00025
         self.maxF = 3.5316
         self.minF = 0.0
-        # self.initial_state = np.array([np.random.randint(-5,5), 
-        #                                  np.random.randint(-5,5), np.random.uniform(-2*np.pi/3,2*np.pi/3)  ,0,0,0]) 
         self.initial_state = np.array([np.random.randint(-5,5), 
-                                       np.random.randint(-5,5), 0 ,0,0,0])   
+                                         np.random.randint(-5,5), np.random.uniform(-2*np.pi/3,2*np.pi/3)  ,0,0,0]) 
+        # self.initial_state = np.array([np.random.randint(-5,5), 
+        #                                np.random.randint(-5,5), 0 ,0,0,0])   
         #z,y,phi,zdot,ydot,phidot.
     
         #the initial state vector contains all the state and their dervitaive
@@ -399,7 +408,7 @@ def anime():
 
     ani = animation.FuncAnimation(fig, animate,
                                   interval = 1, blit=False, init_func=init, repeat = False, frames=len(t))
-    ani.save('2D.mp4',writer='ffmpeg',fps=100,bitrate=1800)
+    ani.save('2D Min Jerk.mp4',writer='ffmpeg',fps=30,bitrate=1800)
 
     plt.show()
     return None
@@ -431,11 +440,24 @@ TUNING_MATRIX = np.array([
 #     [100,10,0]    
 # ])
 
+if PLAN_TRAJ[0] == False:
+    des_stateMatrix = np.empty([len(t),6])
+    des_stateMatrix[:] = des_state
+
+if PLAN_TRAJ[0] == True and PLAN_TRAJ[1] == 1:
+    des_stateMatrix = TrajectoryPlan.minVelPath(Drone,des_state,plan_t,t)
+
+if PLAN_TRAJ[0] == True and PLAN_TRAJ[1] == 2:
+    des_stateMatrix = TrajectoryPlan.minAccelnPath(Drone,des_state,plan_t,t)
+
+if PLAN_TRAJ[0] == True and PLAN_TRAJ[1] == 3:
+    des_stateMatrix = TrajectoryPlan.minJerkPath(Drone,des_state,plan_t,t)
+
 #des_stateMatrix = TrajectoryPlan.minVelPath(Drone,des_state,plan_t,t)
 
 #des_stateMatrix = TrajectoryPlan.minAccelnPath(Drone,des_state,plan_t,t)
 
-des_stateMatrix = TrajectoryPlan.minJerkPath(Drone,des_state,plan_t,t)
+#des_stateMatrix = TrajectoryPlan.minJerkPath(Drone,des_state,plan_t,t)
 print("Trajectory Planning Done. Solving for the states")
 #np.savetxt('check.csv',des_stateMatrix,fmt='%f',delimiter=",")
 solvedState = simulate(TUNING_MATRIX,des_stateMatrix,t)
