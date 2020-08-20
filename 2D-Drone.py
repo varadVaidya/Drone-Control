@@ -64,10 +64,6 @@ class Quadrotor:
         z,y,phi,zdot,ydot,phidot = state    #Unpack the state vector
         u1 , u2 = u                         #Unpack the input vector 'u' into thrust and moment vectors
     
-        # state_derivative = [zdot, ydot, phidot, 
-        #                     -self.GRAVITY + (u1/self.MASS) * 1,
-        #                     -(u1/self.MASS)*(phi), 
-        #                     u2/self.Ixx]
         
         state_derivative = [zdot, ydot, phidot, 
                             -self.GRAVITY + (u1/self.MASS) * np.cos(phi),
@@ -408,7 +404,7 @@ def anime():
 
     ani = animation.FuncAnimation(fig, animate,
                                   interval = 1, blit=False, init_func=init, repeat = False, frames=len(t))
-    ani.save('2D Min Jerk.mp4',writer='ffmpeg',fps=30,bitrate=1800)
+    #ani.save('2D Min Accel.mp4',writer='ffmpeg',fps=30,bitrate=1800)
 
     plt.show()
     return None
