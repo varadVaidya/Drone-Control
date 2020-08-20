@@ -10,6 +10,7 @@ The quadcopter was constrianed to move only along the z-axis of the world frame.
 
 ### 2D Quadcopter
 The quadcopter was restriced to z-y plane. Such version of the quadcopter is called as a Planar Quadrotor. The dynamics of the system were found out by simple Newtonian-Mechanics and simulated using the odeint function from the scipy package.
+To further test the controller the initial roll angle is allowed to vary randomly between -2pi/3 to 2pi/3 with each run of the code.
 
 #### Trajectory Planning
 For the planar Quadrotor to reach the desired postion in a certain manner a trajectory planner was implemented. The following planners were implemented.
@@ -29,7 +30,7 @@ The simulation results are as follows:
     * Graph
     ![Graph for min. accln traj](images\2D-Min_Accel_Traj.png)
     * GIF
-    ![GIF for min. vel traj](gifs\2D_Min_Vel.gif)
+    ![GIF for min. vel traj](gifs\2D-Min_Accel.gif)
 
 * For Minimum Jerk Trajectory:
     * Graph
