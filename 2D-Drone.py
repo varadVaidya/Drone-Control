@@ -6,9 +6,11 @@ import math
 
 '''
 
-CURRENTLY ALL DOUBLE DERIVATIVE STATES ARE ZERO
+CURRENTLY ALL DOUBLE DERIVATIVE STATES ARE NOT ZERO
 Trajectory Planning implemented
 Point to Point Striaght Line Trajectory Planning Done
+Minimum Acceleration Path implemented
+Minimum Jerk Path implemented
 '''
 '''
 This project aims to develop a 2D quadcoptor controller.
@@ -39,10 +41,10 @@ class Quadrotor:
         self.Ixx = 0.00025
         self.maxF = 3.5316
         self.minF = 0.0
-        self.initial_state = np.array([np.random.randint(-5,5), 
-                                         np.random.randint(-5,5), np.random.uniform(-2*np.pi/3,2*np.pi/3)  ,0,0,0]) 
         # self.initial_state = np.array([np.random.randint(-5,5), 
-        #                                np.random.randint(-5,5), 0 ,0,0,0])   
+        #                                  np.random.randint(-5,5), np.random.uniform(-2*np.pi/3,2*np.pi/3)  ,0,0,0]) 
+        self.initial_state = np.array([np.random.randint(-5,5), 
+                                       np.random.randint(-5,5), 0 ,0,0,0])   
         #z,y,phi,zdot,ydot,phidot.
     
         #the initial state vector contains all the state and their dervitaive
@@ -197,6 +199,57 @@ class TrajectoryPlan:
         stateMatrix[0:len(plan_t),5] = 0            
         
         return stateMatrix
+    
+    @staticmethod
+    def minJerkPath(Drone,des_state,plan_t,t):
+        '''
+        The trajectory for minimum jerk path is defined by a fifth order polyomial
+        with constraints on both initial and final ; positions, velocities and acceleration
+            So, 
+            z(t) = A z^5 + B z^4 + C z^3 + D z^2 + E z + F
+            and the boundary conditions are
+            
+            z(0),z'(0),z''(0) = initial state 
+            z(T),Z'(T),z''(T) = final state
+            
+            The coeficients are found out by simple linear algebra
+            
+        '''
+        T = plan_t[-1]
+        stateMatrix = np.empty([len(t),6])
+        stateMatrix[:] = des_state
+        #statematrix is the desired states at all time points which the controller will follow
+        # in the format of z,y,zdot,ydot,zddot,yddot.
+        
+        coeffMatrix = np.array([
+            [0,0,0,0,0,1],
+            [pow(T,5),pow(T,4),pow(T,3),pow(T,2),T,1],
+            [0,0,0,0,1,0],
+            [5*pow(T,4),4*pow(T,3),3*pow(T,2),2*T,1,0],
+            [0,0,0,2,0,0],
+            [20*pow(T,3),12*pow(T,2),6*T,2,0,0]
+        ])
+        z_constriants = np.array([Drone.initial_state[0],des_state[0],    Drone.initial_state[3],des_state[2],0,0])
+        #z(0),z(T),zdot(0),zdot(T),zddot(0),zddot(T)        
+        y_constriants = np.array([Drone.initial_state[1],des_state[1],    Drone.initial_state[4],des_state[3],0,0])
+        #y(0),y(T),ydot(0),ydot(T),yddot(0),yddot(T)
+        stateMatrix[0,:] = [Drone.initial_state[0],Drone.initial_state[1],0,0,0,0]
+        z_coeff = np.linalg.solve(coeffMatrix,z_constriants)
+        y_coeff = np.linalg.solve(coeffMatrix,y_constriants)
+        
+        zvel_coeff = [5*z_coeff[0] , 4*z_coeff[1],3*z_coeff[2],2*z_coeff[3],z_coeff[4]]
+        yvel_coeff = [5*y_coeff[0] , 4*y_coeff[1],3*y_coeff[2],2*y_coeff[3],y_coeff[4]]
+        zaccel_coeff = [20*z_coeff[0],12*z_coeff[1],6*z_coeff[2],2*z_coeff[3]]
+        yaccel_coeff = [20*y_coeff[0],12*y_coeff[1],6*y_coeff[2],2*y_coeff[3]]
+        
+        stateMatrix[0:len(plan_t),0] = np.polyval(z_coeff,plan_t)
+        stateMatrix[0:len(plan_t),1] = np.polyval(y_coeff,plan_t)
+        stateMatrix[0:len(plan_t),2] = np.polyval(zvel_coeff,plan_t)
+        stateMatrix[0:len(plan_t),3] = np.polyval(yvel_coeff,plan_t)
+        stateMatrix[0:len(plan_t),4] = np.polyval(zaccel_coeff,plan_t)
+        stateMatrix[0:len(plan_t),5] = np.polyval(yaccel_coeff,plan_t)
+        
+        return stateMatrix
         
     
 def simulate(TUNING_MATRIX,des_stateMatrix,t):
@@ -210,13 +263,25 @@ def simulate(TUNING_MATRIX,des_stateMatrix,t):
         
         des_state = des_stateMatrix[i,:]
         
-        u1 = Drone.MASS * ( Drone.GRAVITY + 
+        # u1 = Drone.MASS * ( Drone.GRAVITY +
+        #                     Kd_z * (des_state[2] - Drone.current_state[3]) +
+        #                     Kp_z * (des_state[0] - Drone.current_state[0])
+        #                     )
+            
+        # phi_c = (-1/Drone.GRAVITY) * (Kd_y * (des_state[3] - Drone.current_state[4]) +
+        #                               Kp_y * (des_state[1] - Drone.current_state[1]))
+            
+        # u2 = Drone.Ixx * (Kd_th * (-1 * Drone.current_state[5]) +
+        #                   Kp_th * (phi_c - Drone.current_state[2]) )
+        
+        u1 = Drone.MASS * ( Drone.GRAVITY + des_state[4] + 
                             Kd_z * (des_state[2] - Drone.current_state[3]) +
                             Kp_z * (des_state[0] - Drone.current_state[0])
                             )
             
-        phi_c = (-1/Drone.GRAVITY) * (Kd_y * (des_state[3] - Drone.current_state[4]) +
-                                      Kp_y * (des_state[1] - Drone.current_state[1]))
+        phi_c = (-1/Drone.GRAVITY) * ( des_state[5] +
+                                    Kd_y * (des_state[3] - Drone.current_state[4]) +
+                                    Kp_y * (des_state[1] - Drone.current_state[1]))
             
         u2 = Drone.Ixx * (Kd_th * (-1 * Drone.current_state[5]) +
                           Kp_th * (phi_c - Drone.current_state[2]) )
@@ -257,7 +322,7 @@ def plotResults(solvedState,des_stateMatrix,t):
     ax2.grid(True)
     ax2.plot(t,solvedState[:,0],'r',label = 'Z-axis')
     ax2.plot(t,solvedState[:,3],'r:',label = 'Z-velocity')
-    ax2.plot(t,des_stateMatrix[:,0],'m:',label = 'Desired Z Trajectory')
+    #ax2.plot(t,des_stateMatrix[:,0],'m:',label = 'Desired Z Trajectory')
     
     
     ax3 = fig.add_subplot(spec[1,3])
@@ -265,7 +330,7 @@ def plotResults(solvedState,des_stateMatrix,t):
     ax3.grid(True)
     ax3.plot(t,solvedState[:,1],'g',label = 'Y-axis')
     ax3.plot(t,solvedState[:,4],'g:',label = 'Y-velocity')
-    ax3.plot(t,des_stateMatrix[:,1],'m:',label = 'Desired Y Trajectory')
+    #ax3.plot(t,des_stateMatrix[:,1],'m:',label = 'Desired Y Trajectory')
     
     ax4 = fig.add_subplot(spec[2,3])
     ax4.set_title('Phi Trajectory')
@@ -366,9 +431,11 @@ TUNING_MATRIX = np.array([
 #     [100,10,0]    
 # ])
 
-# des_stateMatrix = TrajectoryPlan.minVelPath(Drone,des_state,plan_t,t)
+#des_stateMatrix = TrajectoryPlan.minVelPath(Drone,des_state,plan_t,t)
 
-des_stateMatrix = TrajectoryPlan.minAccelnPath(Drone,des_state,plan_t,t)
+#des_stateMatrix = TrajectoryPlan.minAccelnPath(Drone,des_state,plan_t,t)
+
+des_stateMatrix = TrajectoryPlan.minJerkPath(Drone,des_state,plan_t,t)
 print("Trajectory Planning Done. Solving for the states")
 #np.savetxt('check.csv',des_stateMatrix,fmt='%f',delimiter=",")
 solvedState = simulate(TUNING_MATRIX,des_stateMatrix,t)
