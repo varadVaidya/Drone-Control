@@ -98,7 +98,7 @@ print('The max value of the z is :' , np.nanmax(z))
 
 plt.plot(t,zdes[0],'g:',label = 'z desired')
 plt.plot(t,z,'r-',label = 'z(t)')
-plt.plot(t,zdot,'b--', label = 'zdot(t)')
+#plt.plot(t,zdot,'b--', label = 'zdot(t)')
 plt.xlabel('Time')
 plt.legend(loc = 'best')
 plt.show()
